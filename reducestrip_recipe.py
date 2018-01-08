@@ -1,7 +1,7 @@
 import os
 import glob
-from casarecipe import casatasks as c
-from casarecipe import repo
+from recipe import casatasks as c
+from recipe import repo
 import casac
 import casa
 import shutil
@@ -13,7 +13,7 @@ c.repo.REPODIR="/rds/project/bn204/rds-bn204-asterics/repo/strip"
 
 #processing specification
 Pol="xx" #or "yy", etc
-ProcessData=False
+ProcessData=True
 MakePNG=False
 RefAnt="53" #as a string
 
@@ -69,7 +69,7 @@ def mkinitmodel(tgt,modelname):
 	return modelname
 	
 def copyoutput(dsin,dsout,extension):
-	"""copy output from dsin using dsout as directory names"""
+	"""copy output from dsin using dsout as directory names, clobber everything"""
 	for i,f in enumerate(dsin):
 		fin=os.path.join(f,extension)
 		fout=os.path.split(dsout[i])[-1]+"."+extension
@@ -86,11 +86,11 @@ def main():
 	cmsf=c.flagdata(cms, autocorr=True)
 	cmsfr=c.fixvis(cmsf,phasecenter=CalTarget)
 	cmsfrm=c.ft(cmsfr,complist=cl,usescratch=True)
-	K=c.gaincal(cmsfrm, gaintype="K", refant=RefAnt)
-	G=c.gaincal(cmsfrm, gaintable=[K], calmode="ap", refant=RefAnt)
+	K=c.gaincal(cmsfrm, gaintype="K", refant=RefAnt, interp="linear")
+	G=c.gaincal(cmsfrm, gaintable=[K], gaintype="G" calmode="ap", refant=RefAnt, interp="linear")
 	
 	#image cal for sanity
-	cmsfrmc=c.applycal(cmsfrm, gaintable=[K, G])
+	cmsfrmc=c.applycal(cmsfrm, gaintable=[K, G], interp="linear")
 	cmsfrmcs=c.split(cmsfrmc,datacolumn="corrected")
 	ci=c.clean(vis=cmsfrmcs,
 				niter=500,
@@ -117,7 +117,7 @@ def main():
 				weighting='briggs',
 				robust=0,
 				imsize=[1024,1024],
-				cell=['250arcsec'],
+				cell=['200arcsec'],
 				mode='mfs',
 				nterms=1,
 				spw='0:150~900',
